@@ -14,7 +14,6 @@ def load_pipeline():
     pipe = AutoPipelineForText2Image.from_pretrained(
         source,
         torch_dtype=torch.float16,
-        variant="fp16",
     )
     pipe = pipe.to("cuda")
     # Sliced attention reduces VRAM usage with minimal speed cost

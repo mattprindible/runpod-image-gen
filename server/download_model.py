@@ -17,7 +17,6 @@ else:
     pipe = AutoPipelineForText2Image.from_pretrained(
         MODEL_ID,
         torch_dtype=torch.float16,
-        variant="fp16",
     )
     pipe.save_pretrained(CACHE)
     print("Done.")
