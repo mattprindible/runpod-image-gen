@@ -6,3 +6,5 @@ transformers<5.0.0
 accelerate
 Pillow
 sentencepiece
+safetensors
+protobuf

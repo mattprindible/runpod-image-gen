@@ -1,22 +1,28 @@
 """
-Run this once on the pod to download model weights to the network volume.
-After this, setup.sh will find them at /workspace/models/sdxl-turbo and
-skip the download on future pod restarts.
+Run once on a fresh pod to download SD 3.5 Medium weights to /workspace.
+setup.sh calls this automatically — it's a no-op if already cached.
+Requires HF token at /workspace/key.txt (model is gated).
 """
+import os
 import torch
-from diffusers import AutoPipelineForText2Image
+from diffusers import StableDiffusion3Pipeline
 from pathlib import Path
 
-MODEL_ID = "stabilityai/sdxl-turbo"
-CACHE = Path("/workspace/models/sdxl-turbo")
+MODEL_ID = "stabilityai/stable-diffusion-3.5-medium"
+CACHE = Path("/workspace/models/sd35-medium")
+HF_TOKEN_PATH = Path("/workspace/key.txt")
 
 if CACHE.exists():
     print(f"Already cached at {CACHE} — nothing to do.")
 else:
-    print(f"Downloading {MODEL_ID} to {CACHE} ...")
-    pipe = AutoPipelineForText2Image.from_pretrained(
+    token = os.environ.get("HF_TOKEN") or (HF_TOKEN_PATH.read_text().strip() if HF_TOKEN_PATH.exists() else None)
+    if not token:
+        raise RuntimeError("HF token not found. Set HF_TOKEN as a RunPod secret or write it to /workspace/key.txt")
+    print(f"Downloading {MODEL_ID} to {CACHE} (~10GB, this takes a few minutes)...")
+    pipe = StableDiffusion3Pipeline.from_pretrained(
         MODEL_ID,
         torch_dtype=torch.float16,
+        token=token,
     )
     pipe.save_pretrained(CACHE)
     print("Done.")

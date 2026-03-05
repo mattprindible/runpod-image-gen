@@ -2,172 +2,650 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Image Gen</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD 3.5 Explorer</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
     body {
-      font-family: system-ui, sans-serif;
-      background: #0f0f0f;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
-      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
     }
-    h1 { font-size: 1.2rem; font-weight: 500; margin-bottom: 1.5rem; color: #aaa; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; font-weight: 400; color: #fff; margin-bottom: 24px; }
+    h1 span { color: #444; font-weight: 300; }
+
     .controls {
+      background: #141414;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .mode-toggle {
       display: flex;
-      gap: 0.5rem;
-      width: 100%;
-      max-width: 640px;
-      margin-bottom: 1rem;
-    }
-    input[type="text"] {
-      flex: 1;
-      padding: 0.65rem 1rem;
-      border-radius: 6px;
-      border: 1px solid #333;
       background: #1a1a1a;
-      color: #eee;
-      font-size: 1rem;
-    }
-    input[type="text"]:focus { outline: none; border-color: #555; }
-    button {
-      padding: 0.65rem 1.25rem;
       border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .mode-toggle button {
+      flex: 1;
+      padding: 9px;
+      font-size: 0.85rem;
+      background: transparent;
       border: none;
-      background: #2563eb;
-      color: #fff;
-      font-size: 1rem;
+      color: #555;
       cursor: pointer;
     }
-    button:disabled { background: #333; cursor: default; }
-    .meta {
-      font-size: 0.8rem;
-      color: #666;
-      margin-bottom: 1rem;
-      height: 1.2em;
-    }
-    .steps-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-      font-size: 0.85rem;
-      color: #888;
-    }
-    input[type="range"] { width: 120px; accent-color: #2563eb; }
-    #output {
+    .mode-toggle button:hover { color: #888; }
+    .mode-toggle button.active { background: #2a2a2a; color: #fff; }
+
+    .prompt-label { font-size: 0.72rem; color: #555; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+    textarea {
       width: 100%;
-      max-width: 512px;
-      aspect-ratio: 1;
+      padding: 10px 14px;
+      font-size: 0.95rem;
       background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      color: #eee;
+      resize: none;
+      font-family: inherit;
+      margin-bottom: 10px;
+    }
+    textarea:focus { outline: none; border-color: #444; }
+    textarea.prompt-b { border-color: #1e3a1e; }
+    textarea.prompt-b:focus { border-color: #2e5a2e; }
+
+    .params-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .param { display: flex; flex-direction: column; gap: 3px; }
+    .param label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 0.06em; }
+    .param input, .param select {
+      padding: 7px 10px;
+      font-size: 0.88rem;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 4px;
+      color: #eee;
+      width: 100%;
+    }
+    .param input:focus, .param select:focus { outline: none; border-color: #444; }
+    .param-hint { font-size: 0.68rem; color: #3a3a3a; margin-top: 2px; }
+
+    .btn-row { display: flex; gap: 8px; }
+    .btn-primary {
+      flex: 1;
+      padding: 11px 24px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-primary:hover:not(:disabled) { background: #ddd; }
+    .btn-primary:disabled { background: #222; color: #555; cursor: default; }
+    .btn-secondary {
+      padding: 11px 18px;
+      font-size: 0.88rem;
+      background: transparent;
+      border: 1px solid #2a2a2a;
+      color: #555;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: #555; color: #ccc; }
+    .btn-secondary:disabled { opacity: 0.25; cursor: default; }
+
+    .main-image-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 700px;
+      margin: 0 auto 16px;
+      aspect-ratio: 1;
+      background: #141414;
       border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #444;
       overflow: hidden;
     }
-    #output img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
-    #error { color: #f87171; font-size: 0.85rem; margin-top: 0.75rem; }
+    .main-image-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .placeholder { color: #2a2a2a; font-size: 0.9rem; }
+
+    .progress-overlay {
+      display: none;
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.85);
+      padding: 12px 16px;
+    }
+    .progress-overlay.visible { display: block; }
+    .progress-bar { height: 3px; background: #222; border-radius: 2px; margin-bottom: 7px; }
+    .progress-fill { height: 100%; background: #fff; transition: width 0.25s; width: 0%; }
+    .progress-text { font-size: 0.78rem; color: #666; }
+
+    .thumbnails {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .thumbnail {
+      width: 72px; height: 72px;
+      object-fit: cover;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0.4;
+      border: 2px solid transparent;
+      transition: opacity 0.12s;
+    }
+    .thumbnail:hover { opacity: 0.75; }
+    .thumbnail.active { opacity: 1; border-color: #fff; }
+    .thumb-placeholder { width: 72px; height: 72px; background: #141414; border-radius: 4px; }
+
+    .playback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .playback button {
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #666;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .playback button:hover { color: #ccc; border-color: #444; }
+    .playback button.active { background: #2a2a2a; color: #fff; }
+    .playback input[type=range] { width: 90px; accent-color: #555; }
+    .playback .speed-label { font-size: 0.75rem; color: #444; min-width: 40px; }
+
+    .frame-info { text-align: center; font-size: 0.78rem; color: #444; min-height: 1.2em; margin-bottom: 8px; }
+
+    .analysis-panel {
+      background: #0e0e0e;
+      border: 1px solid #1e1e1e;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+    }
+    .analysis-summary {
+      color: #666;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .analysis-summary strong { color: #888; font-weight: 500; }
+    .analysis-metric {
+      display: inline-block;
+      background: #1a1a1a;
+      border-radius: 3px;
+      padding: 2px 8px;
+      margin: 2px 4px 2px 0;
+      color: #777;
+      font-family: monospace;
+      font-size: 0.78rem;
+    }
+    .analysis-metric span { color: #aaa; }
+    .analysis-frame-metric {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #3a3a3a;
+      margin-bottom: 4px;
+      font-family: monospace;
+    }
+    .analysis-frame-metric span { color: #555; }
+
+    .status { text-align: center; font-size: 0.85rem; color: #444; padding: 12px; }
+    .status.error { color: #c05050; }
+    .status.loading { color: #666; }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-  <h1>Image Gen &nbsp;<button onclick="changeServer()" style="font-size:0.7rem;padding:0.2rem 0.5rem;background:#222;border:1px solid #444;border-radius:4px;color:#888;cursor:pointer">change server</button></h1>
+  <div class="container">
+    <h1>SD 3.5 Explorer <span id="modeLabel">/ Denoising Steps</span></h1>
 
-  <div class="controls">
-    <input type="text" id="prompt" placeholder="a photo of an astronaut riding a horse" autofocus />
-    <button id="btn" onclick="generate()">Generate</button>
-  </div>
+    <div class="controls">
+      <div class="mode-toggle">
+        <button id="modeDenoising" class="active">Denoising</button>
+        <button id="modeCfg">CFG Sweep</button>
+        <button id="modeSeedWalk">Seed Walk</button>
+        <button id="modeInterp">Interpolation</button>
+      </div>
 
-  <div class="steps-row">
-    Steps: <input type="range" id="steps" min="1" max="4" value="1" oninput="stepsLabel.textContent = this.value" />
-    <span id="stepsLabel">1</span>
-    <span style="color:#555">— more steps = higher quality, slower</span>
-  </div>
+      <div class="prompt-label" id="promptALabel">Prompt</div>
+      <textarea id="prompt" rows="2" placeholder="describe what you want to explore...">a lighthouse on a rocky coast at dusk, dramatic clouds</textarea>
 
-  <div class="seed-row" id="seedRow" style="display:none;font-size:0.8rem;color:#666;margin-bottom:0.75rem;display:flex;gap:0.5rem;align-items:center">
-    seed <code id="seedVal" style="color:#888"></code>
-    <button onclick="lockSeed()" id="lockBtn" style="font-size:0.7rem;padding:0.15rem 0.4rem;background:#222;border:1px solid #444;border-radius:4px;color:#888;cursor:pointer">lock</button>
-    <button onclick="clearSeed()" id="clearBtn" style="display:none;font-size:0.7rem;padding:0.15rem 0.4rem;background:#222;border:1px solid #444;border-radius:4px;color:#f87171;cursor:pointer">unlock</button>
+      <div id="promptBWrap" class="hidden">
+        <div class="prompt-label" style="color:#2e5a2e">Prompt B — interpolation target</div>
+        <textarea id="promptB" class="prompt-b" rows="2" placeholder="the destination prompt...">an ancient temple in a dense jungle, golden light through canopy</textarea>
+      </div>
+
+      <div class="params-row">
+        <div class="param">
+          <label>Resolution</label>
+          <select id="resolution">
+            <option value="512" selected>512 — fast</option>
+            <option value="1024">1024 — quality</option>
+          </select>
+        </div>
+        <div class="param">
+          <label>Steps</label>
+          <input type="number" id="steps" value="20" min="10" max="50">
+          <div class="param-hint" id="stepsHint"></div>
+        </div>
+        <div class="param hidden" id="framesParam">
+          <label>Frames</label>
+          <input type="number" id="numFrames" value="6" min="2" max="24">
+        </div>
+        <div class="param hidden" id="strengthParam">
+          <label>Walk Strength</label>
+          <input type="number" id="walkStrength" value="0.3" min="0.05" max="1.0" step="0.05">
+        </div>
+        <div class="param" id="cfgParam">
+          <label>CFG Scale</label>
+          <input type="number" id="cfg" value="7.0" min="1" max="20" step="0.5">
+        </div>
+        <div class="param">
+          <label>Seed</label>
+          <input type="number" id="seed" placeholder="random">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" id="generateBtn">Generate</button>
+        <button class="btn-secondary" id="downloadBtn" disabled>Download</button>
+      </div>
+    </div>
+
+    <div class="main-image-wrap">
+      <span class="placeholder" id="placeholder">generate something to start exploring</span>
+      <img id="mainImage" class="hidden" alt="">
+      <div class="progress-overlay" id="progressOverlay">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-text" id="progressText"></div>
+      </div>
+    </div>
+
+    <div class="thumbnails" id="thumbnails"></div>
+
+    <div class="playback hidden" id="playback">
+      <button id="prevBtn">← Prev</button>
+      <button id="playBtn">Play</button>
+      <button id="nextBtn">Next →</button>
+      <input type="range" id="speedSlider" min="100" max="2000" value="500">
+      <span class="speed-label" id="speedLabel">500ms</span>
+    </div>
+
+    <div class="analysis-frame-metric hidden" id="analysisFrameMetric"></div>
+    <div class="frame-info" id="frameInfo"></div>
+    <div class="analysis-panel hidden" id="analysisPanel">
+      <div class="analysis-summary" id="analysisSummary"></div>
+    </div>
+    <div class="status" id="status"></div>
   </div>
-  <div class="meta" id="meta"></div>
-  <div id="output">waiting for image</div>
-  <div id="error"></div>
 
   <script>
-    // Change this to your pod's URL after provisioning
-    // RunPod format: https://{POD_ID}-8000.proxy.runpod.net
-    let lastSeed = null;
-    let lockedSeed = null;
+    const MODE_LABELS = {
+      denoising_steps:      '/ Denoising Steps',
+      cfg_sweep:            '/ CFG Sweep',
+      seed_walk:            '/ Seed Walk',
+      prompt_interpolation: '/ Prompt Interpolation',
+    };
+    const MODE_BTNS = {
+      denoising_steps:      'modeDenoising',
+      cfg_sweep:            'modeCfg',
+      seed_walk:            'modeSeedWalk',
+      prompt_interpolation: 'modeInterp',
+    };
 
-    function lockSeed() {
-      lockedSeed = lastSeed;
-      document.getElementById("lockBtn").style.display = "none";
-      document.getElementById("clearBtn").style.display = "";
-      document.getElementById("seedVal").style.color = "#facc15";
+    let currentMode = 'denoising_steps';
+    let images = [];
+    let frameMeta = [];
+    let currentIndex = 0;
+    let currentBatchId = null;
+    let eventSource = null;
+    let isPlaying = false;
+    let playInterval = null;
+    let batchAnalysis = null;
+
+    // --- Mode switching ---
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('modeLabel').textContent = MODE_LABELS[mode];
+      Object.values(MODE_BTNS).forEach(id => document.getElementById(id).classList.remove('active'));
+      document.getElementById(MODE_BTNS[mode]).classList.add('active');
+
+      const isInterp = mode === 'prompt_interpolation';
+      const isWalk = mode === 'seed_walk';
+      const isCfg = mode === 'cfg_sweep';
+      const hasFrames = isWalk || isInterp;
+
+      document.getElementById('promptBWrap').classList.toggle('hidden', !isInterp);
+      document.getElementById('promptALabel').textContent = isInterp ? 'Prompt A — interpolation start' : 'Prompt';
+      document.getElementById('framesParam').classList.toggle('hidden', !hasFrames);
+      document.getElementById('strengthParam').classList.toggle('hidden', !isWalk);
+      document.getElementById('cfgParam').classList.toggle('hidden', isCfg);
+
+      updateHint();
     }
 
-    function clearSeed() {
-      lockedSeed = null;
-      document.getElementById("lockBtn").style.display = "";
-      document.getElementById("clearBtn").style.display = "none";
-      document.getElementById("seedVal").style.color = "#888";
-    }
-
-    const SERVER = localStorage.getItem("server") || prompt(
-      "Enter your RunPod server URL (e.g. https://abc123-8000.proxy.runpod.net):"
-    );
-    if (SERVER) localStorage.setItem("server", SERVER);
-
-    async function generate() {
-      const prompt = document.getElementById("prompt").value.trim();
-      if (!prompt) return;
-
-      const btn = document.getElementById("btn");
-      const meta = document.getElementById("meta");
-      const errorEl = document.getElementById("error");
-      const output = document.getElementById("output");
-
-      btn.disabled = true;
-      btn.textContent = "Generating...";
-      meta.textContent = "";
-      errorEl.textContent = "";
-
-      try {
-        const steps = parseInt(document.getElementById("steps").value);
-        const res = await fetch(`${SERVER}/generate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, steps, seed: lockedSeed ?? undefined }),
-        });
-
-        if (!res.ok) throw new Error(`Server error ${res.status}`);
-        const data = await res.json();
-
-        output.innerHTML = `<img src="data:image/png;base64,${data.image}" />`;
-        meta.textContent = `${data.elapsed_seconds}s · ${steps} step${steps > 1 ? "s" : ""}`;
-        document.getElementById("seedVal").textContent = data.seed;
-        document.getElementById("seedRow").style.display = "flex";
-        lastSeed = data.seed;
-      } catch (e) {
-        errorEl.textContent = e.message;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Generate";
+    function updateHint() {
+      const steps = parseInt(document.getElementById('steps').value) || 20;
+      const res = document.getElementById('resolution').value;
+      const secPerImage = res === '512' ? 20 : 60;
+      const hint = document.getElementById('stepsHint');
+      if (currentMode === 'denoising_steps') {
+        hint.textContent = `~${secPerImage}s total`;
+      } else if (currentMode === 'cfg_sweep') {
+        hint.textContent = `6 values × ~${secPerImage}s`;
+      } else {
+        const frames = parseInt(document.getElementById('numFrames').value) || 6;
+        hint.textContent = `${frames} × ~${secPerImage}s`;
       }
     }
 
-    function changeServer() {
-      localStorage.removeItem("server");
-      location.reload();
+    document.getElementById('modeDenoising').onclick = () => setMode('denoising_steps');
+    document.getElementById('modeCfg').onclick = () => setMode('cfg_sweep');
+    document.getElementById('modeSeedWalk').onclick = () => setMode('seed_walk');
+    document.getElementById('modeInterp').onclick = () => setMode('prompt_interpolation');
+    document.getElementById('steps').oninput = updateHint;
+    document.getElementById('resolution').onchange = updateHint;
+    document.getElementById('numFrames').oninput = updateHint;
+
+    // --- Generation ---
+
+    document.getElementById('generateBtn').onclick = generate;
+    document.getElementById('downloadBtn').onclick = () => {
+      if (currentBatchId) window.location.href = `/download/${currentBatchId}`;
+    };
+
+    function generate() {
+      const prompt = document.getElementById('prompt').value.trim();
+      if (!prompt) return;
+      if (currentMode === 'prompt_interpolation' && !document.getElementById('promptB').value.trim()) {
+        setStatus('Prompt B is required for interpolation mode', 'error');
+        return;
+      }
+
+      resetViewer();
+      document.getElementById('generateBtn').disabled = true;
+      document.getElementById('downloadBtn').disabled = true;
+      setStatus('Connecting...', 'loading');
+
+      const p = new URLSearchParams({
+        prompt,
+        mode: currentMode,
+        num_inference_steps: document.getElementById('steps').value,
+        guidance_scale: document.getElementById('cfg').value || '7.0',
+        resolution: document.getElementById('resolution').value,
+      });
+
+      if (currentMode === 'prompt_interpolation') {
+        p.set('prompt_b', document.getElementById('promptB').value.trim());
+        p.set('num_frames', document.getElementById('numFrames').value);
+      } else if (currentMode === 'seed_walk') {
+        p.set('num_frames', document.getElementById('numFrames').value);
+        p.set('walk_strength', document.getElementById('walkStrength').value);
+      }
+
+      const seedVal = document.getElementById('seed').value.trim();
+      if (seedVal) p.set('base_seed', seedVal);
+
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource(`/generate-stream?${p}`);
+
+      eventSource.addEventListener('start', e => {
+        const d = JSON.parse(e.data);
+        currentBatchId = d.batch_id;
+        for (let i = 0; i < d.total; i++) {
+          const ph = document.createElement('div');
+          ph.className = 'thumb-placeholder';
+          document.getElementById('thumbnails').appendChild(ph);
+        }
+        setStatus(`Batch ${d.batch_id} — generating...`, 'loading');
+      });
+
+      eventSource.addEventListener('frame', e => {
+        const d = JSON.parse(e.data);
+        images.push(d.url);
+        frameMeta.push(d);
+
+        document.getElementById('progressFill').style.width = ((d.frame + 1) / d.total * 100) + '%';
+        document.getElementById('progressText').textContent = frameLabel(d);
+        document.getElementById('progressOverlay').classList.add('visible');
+
+        const thumbs = document.getElementById('thumbnails');
+        const ph = thumbs.children[d.frame];
+        if (ph) {
+          const img = document.createElement('img');
+          img.className = 'thumbnail' + (d.frame === currentIndex ? ' active' : '');
+          img.src = d.url;
+          img.onclick = () => selectFrame(d.frame);
+          ph.replaceWith(img);
+        }
+
+        if (d.frame === 0 || d.frame === currentIndex) showFrame(d.frame);
+      });
+
+      eventSource.addEventListener('prompt_geometry', e => {
+        const d = JSON.parse(e.data);
+        showPromptGeometry(d);
+      });
+
+      eventSource.addEventListener('analysis', e => {
+        batchAnalysis = JSON.parse(e.data);
+        showAnalysisSummary(batchAnalysis);
+      });
+
+      eventSource.addEventListener('done', e => {
+        const d = JSON.parse(e.data);
+        eventSource.close(); eventSource = null;
+        document.getElementById('generateBtn').disabled = false;
+        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('progressOverlay').classList.remove('visible');
+        document.getElementById('playback').classList.remove('hidden');
+        updateFrameInfo();
+        setStatus(`Batch ${d.batch_id} — ${d.total} frames`, '');
+      });
+
+      eventSource.addEventListener('error', e => {
+        if (e.data) setStatus('Error: ' + JSON.parse(e.data).error, 'error');
+      });
+
+      eventSource.onerror = () => {
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          document.getElementById('generateBtn').disabled = false;
+          document.getElementById('progressOverlay').classList.remove('visible');
+          if (images.length > 0) {
+            document.getElementById('downloadBtn').disabled = false;
+            document.getElementById('playback').classList.remove('hidden');
+          } else {
+            setStatus('Connection error. Is the server running?', 'error');
+          }
+        }
+      };
     }
 
-    document.getElementById("prompt").addEventListener("keydown", e => {
-      if (e.key === "Enter") generate();
+    // --- Frame display ---
+
+    function frameLabel(d) {
+      if (currentMode === 'denoising_steps') return `Step ${(d.step || 0) + 1} of ${d.total} (t=${d.timestep || 0})`;
+      if (currentMode === 'cfg_sweep')       return `CFG ${d.cfg} — frame ${d.frame + 1} of ${d.total}`;
+      if (currentMode === 'prompt_interpolation') return `t=${d.t} — frame ${d.frame + 1} of ${d.total}`;
+      return `Frame ${d.frame + 1} of ${d.total}`;
+    }
+
+    function showFrame(index) {
+      currentIndex = index;
+      const img = document.getElementById('mainImage');
+      img.src = images[index];
+      img.classList.remove('hidden');
+      document.getElementById('placeholder').classList.add('hidden');
+      document.querySelectorAll('.thumbnail').forEach((t, i) => t.classList.toggle('active', i === index));
+      updateFrameInfo();
+    }
+
+    function selectFrame(index) {
+      if (index >= 0 && index < images.length) showFrame(index);
+    }
+
+    function updateFrameInfo() {
+      const d = frameMeta[currentIndex];
+      document.getElementById('frameInfo').textContent = d ? frameLabel(d) : '';
+      updateFrameMetric(d);
+    }
+
+    function updateFrameMetric(d) {
+      const el = document.getElementById('analysisFrameMetric');
+      if (!d) { el.classList.add('hidden'); return; }
+      let text = '';
+      if (currentMode === 'denoising_steps' && d.latent_norm != null) {
+        text = `latent norm: <span>${d.latent_norm}</span>`;
+        if (d.delta_norm != null) text += `  &nbsp;  Δ: <span>${d.delta_norm}</span>`;
+      } else if (currentMode === 'seed_walk' && d.angle_degrees != null) {
+        text = `angle from base: <span>${d.angle_degrees}°</span>  &nbsp;  cosine: <span>${d.cosine_to_base}</span>`;
+      } else if (currentMode === 'prompt_interpolation' && d.t != null) {
+        text = `t: <span>${d.t}</span>  &nbsp;  dist from A: <span>${d.dist_from_a}</span>  &nbsp;  dist from B: <span>${d.dist_from_b}</span>`;
+      } else if (currentMode === 'cfg_sweep' && d.cfg != null) {
+        text = `guidance scale: <span>${d.cfg}</span>`;
+      }
+      if (text) {
+        el.innerHTML = text;
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
+    function showPromptGeometry(a) {
+      const panel = document.getElementById('analysisPanel');
+      const summary = document.getElementById('analysisSummary');
+      summary.innerHTML =
+        `<strong>Prompt geometry</strong><br>` +
+        metric('pooled cosine similarity', a.pooled_cosine_similarity) +
+        metric('pooled distance', a.pooled_distance) +
+        metric('angle (degrees)', a.pooled_angle_degrees) +
+        metric('full embedding similarity', a.full_embedding_cosine_similarity);
+      panel.classList.remove('hidden');
+    }
+
+    function showAnalysisSummary(a) {
+      const panel = document.getElementById('analysisPanel');
+      const summary = document.getElementById('analysisSummary');
+      let html = '';
+      if (a.mode === 'denoising_steps' && a.summary) {
+        html = `<strong>Denoising analysis</strong><br>` +
+          metric('peak Δ norm', a.summary.peak_delta_norm) +
+          metric('peak Δ at step', a.summary.peak_delta_step) +
+          metric('final latent norm', a.summary.final_latent_norm);
+      } else if (a.mode === 'seed_walk' && a.summary) {
+        html = `<strong>Seed walk analysis</strong><br>` +
+          metric('max angle from base', a.summary.max_angle_degrees + '°') +
+          metric('walk strength', a.summary.walk_strength);
+      } else if (a.mode === 'prompt_interpolation') {
+        html = `<strong>Prompt geometry</strong><br>` +
+          metric('pooled cosine similarity', a.pooled_cosine_similarity) +
+          metric('pooled distance', a.pooled_distance) +
+          metric('angle (degrees)', a.pooled_angle_degrees) +
+          metric('full embedding similarity', a.full_embedding_cosine_similarity);
+      } else if (a.mode === 'cfg_sweep') {
+        html = `<strong>CFG sweep</strong><br>` +
+          `<div class="analysis-metric">values: <span>${a.cfg_values?.join(', ')}</span></div>`;
+      }
+      if (html) {
+        summary.innerHTML = html;
+        panel.classList.remove('hidden');
+      }
+    }
+
+    function metric(label, value) {
+      return `<div class="analysis-metric">${label}: <span>${value ?? '—'}</span></div>`;
+    }
+
+    // --- Playback ---
+
+    document.getElementById('prevBtn').onclick = () => selectFrame((currentIndex - 1 + images.length) % images.length);
+    document.getElementById('nextBtn').onclick = () => selectFrame((currentIndex + 1) % images.length);
+    document.getElementById('playBtn').onclick = togglePlay;
+    document.getElementById('speedSlider').oninput = updateSpeed;
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('playBtn');
+      btn.textContent = isPlaying ? 'Pause' : 'Play';
+      btn.classList.toggle('active', isPlaying);
+      if (isPlaying) {
+        playInterval = setInterval(
+          () => selectFrame((currentIndex + 1) % images.length),
+          parseInt(document.getElementById('speedSlider').value)
+        );
+      } else {
+        clearInterval(playInterval);
+      }
+    }
+
+    function updateSpeed() {
+      const v = document.getElementById('speedSlider').value;
+      document.getElementById('speedLabel').textContent = v + 'ms';
+      if (isPlaying) {
+        clearInterval(playInterval);
+        playInterval = setInterval(() => selectFrame((currentIndex + 1) % images.length), parseInt(v));
+      }
+    }
+
+    // --- Utilities ---
+
+    function resetViewer() {
+      images = []; frameMeta = []; currentIndex = 0; currentBatchId = null;
+      isPlaying = false; clearInterval(playInterval);
+      document.getElementById('playBtn').textContent = 'Play';
+      document.getElementById('playBtn').classList.remove('active');
+      document.getElementById('thumbnails').innerHTML = '';
+      document.getElementById('playback').classList.add('hidden');
+      document.getElementById('frameInfo').textContent = '';
+      document.getElementById('progressOverlay').classList.remove('visible');
+      document.getElementById('progressFill').style.width = '0%';
+      document.getElementById('mainImage').classList.add('hidden');
+      document.getElementById('placeholder').classList.remove('hidden');
+      document.getElementById('analysisPanel').classList.add('hidden');
+      document.getElementById('analysisFrameMetric').classList.add('hidden');
+      batchAnalysis = null;
+    }
+
+    function setStatus(msg, cls) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status' + (cls ? ' ' + cls : '');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft')  selectFrame((currentIndex - 1 + images.length) % images.length);
+      if (e.key === 'ArrowRight') selectFrame((currentIndex + 1) % images.length);
+      if (e.key === ' ') { e.preventDefault(); togglePlay(); }
     });
+
+    // Init
+    updateHint();
   </script>
 </body>
 </html>
