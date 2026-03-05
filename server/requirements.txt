@@ -2,7 +2,7 @@
 fastapi
 uvicorn[standard]
 diffusers
-transformers
+transformers<5.0.0
 accelerate
 Pillow
 sentencepiece
