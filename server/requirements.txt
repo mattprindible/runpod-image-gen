@@ -1,7 +1,7 @@
 # torch is pre-installed on the RunPod PyTorch template - don't reinstall it
 fastapi
 uvicorn[standard]
-diffusers
+diffusers>=0.31.0,<0.32.0
 transformers<5.0.0
 accelerate
 Pillow
