@@ -9,9 +9,17 @@ HF_TOKEN_PATH = Path("/workspace/key.txt")
 
 
 def load_hf_token() -> str:
-    # Prefer RunPod secret (injected as env var) over file
+    # Prefer process environment (direct or SSH session)
     if token := os.environ.get("HF_TOKEN"):
         return token
+    # RunPod: Docker env vars are on PID 1, not inherited by SSH sessions
+    try:
+        with open("/proc/1/environ", "rb") as f:
+            for item in f.read().split(b"\0"):
+                if item.startswith(b"HF_TOKEN="):
+                    return item[9:].decode()
+    except OSError:
+        pass
     if HF_TOKEN_PATH.exists():
         return HF_TOKEN_PATH.read_text().strip()
     raise RuntimeError("HF token not found. Set HF_TOKEN as a RunPod secret or write it to /workspace/key.txt")

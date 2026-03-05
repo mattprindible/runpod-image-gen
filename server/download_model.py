@@ -15,7 +15,18 @@ HF_TOKEN_PATH = Path("/workspace/key.txt")
 if CACHE.exists():
     print(f"Already cached at {CACHE} — nothing to do.")
 else:
-    token = os.environ.get("HF_TOKEN") or (HF_TOKEN_PATH.read_text().strip() if HF_TOKEN_PATH.exists() else None)
+    token = os.environ.get("HF_TOKEN")
+    if not token:
+        try:
+            with open("/proc/1/environ", "rb") as f:
+                for item in f.read().split(b"\0"):
+                    if item.startswith(b"HF_TOKEN="):
+                        token = item[9:].decode()
+                        break
+        except OSError:
+            pass
+    if not token and HF_TOKEN_PATH.exists():
+        token = HF_TOKEN_PATH.read_text().strip()
     if not token:
         raise RuntimeError("HF token not found. Set HF_TOKEN as a RunPod secret or write it to /workspace/key.txt")
     print(f"Downloading {MODEL_ID} to {CACHE} (~10GB, this takes a few minutes)...")
