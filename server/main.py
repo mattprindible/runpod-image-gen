@@ -44,9 +44,8 @@ def generate(req: GenerateRequest):
     if pipe is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
-    generator = None
-    if req.seed is not None:
-        generator = torch.Generator("cuda").manual_seed(req.seed)
+    seed = req.seed if req.seed is not None else torch.randint(0, 2**32, (1,)).item()
+    generator = torch.Generator("cuda").manual_seed(seed)
 
     start = time.time()
     result = pipe(
@@ -67,4 +66,5 @@ def generate(req: GenerateRequest):
         "elapsed_seconds": round(elapsed, 3),
         "prompt": req.prompt,
         "steps": req.steps,
+        "seed": seed,
     }

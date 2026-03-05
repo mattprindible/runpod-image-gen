@@ -88,6 +88,11 @@
     <span style="color:#555">— more steps = higher quality, slower</span>
   </div>
 
+  <div class="seed-row" id="seedRow" style="display:none;font-size:0.8rem;color:#666;margin-bottom:0.75rem;display:flex;gap:0.5rem;align-items:center">
+    seed <code id="seedVal" style="color:#888"></code>
+    <button onclick="lockSeed()" id="lockBtn" style="font-size:0.7rem;padding:0.15rem 0.4rem;background:#222;border:1px solid #444;border-radius:4px;color:#888;cursor:pointer">lock</button>
+    <button onclick="clearSeed()" id="clearBtn" style="display:none;font-size:0.7rem;padding:0.15rem 0.4rem;background:#222;border:1px solid #444;border-radius:4px;color:#f87171;cursor:pointer">unlock</button>
+  </div>
   <div class="meta" id="meta"></div>
   <div id="output">waiting for image</div>
   <div id="error"></div>
@@ -95,6 +100,23 @@
   <script>
     // Change this to your pod's URL after provisioning
     // RunPod format: https://{POD_ID}-8000.proxy.runpod.net
+    let lastSeed = null;
+    let lockedSeed = null;
+
+    function lockSeed() {
+      lockedSeed = lastSeed;
+      document.getElementById("lockBtn").style.display = "none";
+      document.getElementById("clearBtn").style.display = "";
+      document.getElementById("seedVal").style.color = "#facc15";
+    }
+
+    function clearSeed() {
+      lockedSeed = null;
+      document.getElementById("lockBtn").style.display = "";
+      document.getElementById("clearBtn").style.display = "none";
+      document.getElementById("seedVal").style.color = "#888";
+    }
+
     const SERVER = localStorage.getItem("server") || prompt(
       "Enter your RunPod server URL (e.g. https://abc123-8000.proxy.runpod.net):"
     );
@@ -119,7 +141,7 @@
         const res = await fetch(`${SERVER}/generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt, steps }),
+          body: JSON.stringify({ prompt, steps, seed: lockedSeed ?? undefined }),
         });
 
         if (!res.ok) throw new Error(`Server error ${res.status}`);
@@ -127,6 +149,9 @@
 
         output.innerHTML = `<img src="data:image/png;base64,${data.image}" />`;
         meta.textContent = `${data.elapsed_seconds}s · ${steps} step${steps > 1 ? "s" : ""}`;
+        document.getElementById("seedVal").textContent = data.seed;
+        document.getElementById("seedRow").style.display = "flex";
+        lastSeed = data.seed;
       } catch (e) {
         errorEl.textContent = e.message;
       } finally {
