@@ -1,0 +1,7 @@
+# torch is pre-installed on the RunPod PyTorch template - don't reinstall it
+fastapi
+uvicorn[standard]
+diffusers
+transformers
+accelerate
+Pillow

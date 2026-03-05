@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image Gen</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.2rem; font-weight: 500; margin-bottom: 1.5rem; color: #aaa; }
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 1rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #eee;
+      font-size: 1rem;
+    }
+    input[type="text"]:focus { outline: none; border-color: #555; }
+    button {
+      padding: 0.65rem 1.25rem;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:disabled { background: #333; cursor: default; }
+    .meta {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 1rem;
+      height: 1.2em;
+    }
+    .steps-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.85rem;
+      color: #888;
+    }
+    input[type="range"] { width: 120px; accent-color: #2563eb; }
+    #output {
+      width: 100%;
+      max-width: 512px;
+      aspect-ratio: 1;
+      background: #1a1a1a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #444;
+      overflow: hidden;
+    }
+    #output img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+    #error { color: #f87171; font-size: 0.85rem; margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <h1>Image Gen</h1>
+
+  <div class="controls">
+    <input type="text" id="prompt" placeholder="a photo of an astronaut riding a horse" autofocus />
+    <button id="btn" onclick="generate()">Generate</button>
+  </div>
+
+  <div class="steps-row">
+    Steps: <input type="range" id="steps" min="1" max="4" value="1" oninput="stepsLabel.textContent = this.value" />
+    <span id="stepsLabel">1</span>
+    <span style="color:#555">— more steps = higher quality, slower</span>
+  </div>
+
+  <div class="meta" id="meta"></div>
+  <div id="output">waiting for image</div>
+  <div id="error"></div>
+
+  <script>
+    // Change this to your pod's URL after provisioning
+    // RunPod format: https://{POD_ID}-8000.proxy.runpod.net
+    const SERVER = localStorage.getItem("server") || prompt(
+      "Enter your RunPod server URL (e.g. https://abc123-8000.proxy.runpod.net):"
+    );
+    if (SERVER) localStorage.setItem("server", SERVER);
+
+    async function generate() {
+      const prompt = document.getElementById("prompt").value.trim();
+      if (!prompt) return;
+
+      const btn = document.getElementById("btn");
+      const meta = document.getElementById("meta");
+      const errorEl = document.getElementById("error");
+      const output = document.getElementById("output");
+
+      btn.disabled = true;
+      btn.textContent = "Generating...";
+      meta.textContent = "";
+      errorEl.textContent = "";
+
+      try {
+        const steps = parseInt(document.getElementById("steps").value);
+        const res = await fetch(`${SERVER}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, steps }),
+        });
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const data = await res.json();
+
+        output.innerHTML = `<img src="data:image/png;base64,${data.image}" />`;
+        meta.textContent = `${data.elapsed_seconds}s · ${steps} step${steps > 1 ? "s" : ""}`;
+      } catch (e) {
+        errorEl.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Generate";
+      }
+    }
+
+    document.getElementById("prompt").addEventListener("keydown", e => {
+      if (e.key === "Enter") generate();
+    });
+  </script>
+</body>
+</html>
