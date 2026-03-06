@@ -171,6 +171,9 @@ async def generate_stream(
     num_inference_steps: int = 20,
     guidance_scale: float = 7.0,
     resolution: int = 512,
+    slerp_embeds: bool = False,
+    t_min: float = 0.0,
+    t_max: float = 1.0,
 ):
     if pipe is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
@@ -193,6 +196,9 @@ async def generate_stream(
         "num_inference_steps": num_inference_steps,
         "guidance_scale": guidance_scale,
         "resolution": resolution,
+        "slerp_embeds": slerp_embeds,
+        "t_min": t_min,
+        "t_max": t_max,
     }
     (batch_dir / "params.json").write_text(json.dumps(params, indent=2))
 
@@ -327,19 +333,20 @@ async def generate_stream(
             yield f"event: prompt_geometry\ndata: {json.dumps(analysis)}\n\n"
 
             fixed_latents = make_latents(base_seed, height, width)
+            mix = slerp if slerp_embeds else lambda a, b, t: (1 - t) * a + t * b
             frames_data = []
             for i in range(num_frames):
                 try:
-                    t = i / max(num_frames - 1, 1)
+                    t = t_min + (t_max - t_min) * i / max(num_frames - 1, 1)
                     dist_from_a = round(t * (1 - pooled_sim), 4)
                     dist_from_b = round((1 - t) * (1 - pooled_sim), 4)
                     frames_data.append({"frame": i, "t": round(t, 3), "dist_from_a": dist_from_a, "dist_from_b": dist_from_b})
                     image = await loop.run_in_executor(
                         executor, run_generate_from_embeds,
-                        (1 - t) * embeds_a + t * embeds_b,
-                        (1 - t) * neg_a + t * neg_b,
-                        (1 - t) * pooled_a + t * pooled_b,
-                        (1 - t) * neg_pooled_a + t * neg_pooled_b,
+                        mix(embeds_a, embeds_b, t),
+                        mix(neg_a, neg_b, t),
+                        mix(pooled_a, pooled_b, t),
+                        mix(neg_pooled_a, neg_pooled_b, t),
                         fixed_latents.clone(),
                         num_inference_steps, guidance_scale, width, height,
                     )

@@ -29,6 +29,7 @@ def run_probe(
     server_url, prompt, mode,
     prompt_b=None, num_frames=6, steps=20, cfg=7.0,
     resolution=512, walk_strength=0.3, seed=None,
+    slerp_embeds=False, t_min=0.0, t_max=1.0,
     output_dir="/tmp/sd-probe",
 ):
     params = {
@@ -44,6 +45,11 @@ def run_probe(
         params["prompt_b"] = prompt_b
     if seed is not None:
         params["base_seed"] = seed
+    if mode == "prompt_interpolation":
+        params["t_min"] = t_min
+        params["t_max"] = t_max
+        if slerp_embeds:
+            params["slerp_embeds"] = "true"
 
     print(f"Mode:    {mode}")
     print(f"Prompt:  {prompt}")
@@ -183,6 +189,9 @@ if __name__ == "__main__":
     parser.add_argument("--resolution", type=int, default=512, choices=[512, 1024])
     parser.add_argument("--walk-strength", type=float, default=0.3)
     parser.add_argument("--seed", type=int, help="Base seed (omit for random)")
+    parser.add_argument("--slerp-embeds", action="store_true", help="SLERP embeddings instead of LERP (interpolation mode)")
+    parser.add_argument("--t-min", type=float, default=0.0, help="Start of t range (interpolation mode)")
+    parser.add_argument("--t-max", type=float, default=1.0, help="End of t range (interpolation mode)")
     parser.add_argument("--output-dir", default="/tmp/sd-probe", help="Local directory for downloads")
     args = parser.parse_args()
 
@@ -197,5 +206,8 @@ if __name__ == "__main__":
         resolution=args.resolution,
         walk_strength=args.walk_strength,
         seed=args.seed,
+        slerp_embeds=args.slerp_embeds,
+        t_min=args.t_min,
+        t_max=args.t_max,
         output_dir=args.output_dir,
     )
