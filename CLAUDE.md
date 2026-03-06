@@ -103,7 +103,9 @@ Health check: `curl https://<pod_id>-8000.proxy.runpod.net/health`
 git add -p && git commit -m "..." && git push
 
 # On pod:
-ssh ... "cd /workspace/app && git pull && pkill uvicorn; nohup uvicorn server.main:app --host 0.0.0.0 --port 8000 > /workspace/server.log 2>&1 &"
+ssh ... "cd /workspace/app && git pull && pkill -f uvicorn; sleep 1 && nohup uvicorn server.main:app --host 0.0.0.0 --port 8000 > /workspace/server.log 2>&1 &"
+# NOTE: must use `pkill -f uvicorn` not `pkill uvicorn` — the process runs as
+# /usr/bin/python so pkill by name misses it; -f matches the full command line
 ```
 
 ## Closed-loop testing
